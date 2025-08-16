@@ -11,7 +11,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_FILE="${SCRIPT_DIR}/smart_monitor.conf"
 OUTPUT_DIR="${SCRIPT_DIR}/output"
 LOG_FILE="${SCRIPT_DIR}/smart_monitor.log"
-SMARTCTL_OPTS="-a"
 JSON_FORMAT="pretty"
 DEVICE_PATTERN="/dev/sd* /dev/nvme* /dev/hd*"
 EXCLUDE_PATTERNS=""
@@ -31,10 +30,9 @@ Usage: $0 [OPTIONS]
 Options:
     -c, --config FILE      Configuration file (default: $CONFIG_FILE)
     -o, --output DIR       Output directory (default: $OUTPUT_DIR)
-    -l, --log FILE         Log file (default: $LOG_FILE)
+    -l, --log FILE         Log file (default: $LOG_FILE, use "" to disable logging)
     -d, --devices PATTERN  Device pattern to scan (default: "$DEVICE_PATTERN")
     -e, --exclude PATTERN  Exclude devices matching pattern
-    -s, --smart-opts OPTS  smartctl options (default: "$SMARTCTL_OPTS")
     -f, --format FORMAT    JSON format: pretty, compact (default: $JSON_FORMAT)
     -n, --dry-run          Show what would be done without executing
     -v, --verbose          Verbose output
@@ -43,8 +41,8 @@ Options:
 Examples:
     $0                                    # Run with defaults
     $0 -o /var/log/smart                 # Custom output directory
+    $0 -l ""                              # Disable logging
     $0 -d "/dev/sd*" -e "/dev/sda"      # Only scan /dev/sd* devices, exclude /dev/sda
-    $0 -s "-a -H"                        # Use smartctl -a -H options
     $0 -f compact                        # Output compact JSON
 
 EOF
@@ -56,7 +54,14 @@ log() {
     shift
     local message="$*"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
+    
+    if [[ -n "$LOG_FILE" ]]; then
+        # Write to both log file and stdout/stderr
+        echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
+    else
+        # Only write to stdout/stderr, no log file
+        echo "[$timestamp] [$level] $message"
+    fi
 }
 
 # Function to check if smartctl is available
@@ -72,6 +77,17 @@ check_dependencies() {
     fi
 }
 
+# Function to validate JSON (basic validation without jq)
+validate_json_basic() {
+    local json_string="$1"
+    # Basic JSON validation: check if it starts with { and ends with }
+    if [[ "$json_string" =~ ^\{.*\}$ ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Function to get device information
 get_device_info() {
     local device="$1"
@@ -80,57 +96,135 @@ get_device_info() {
     # Log debug messages to stderr to avoid contaminating function output
     log "DEBUG" "Getting SMART info for device: $device" >&2
     
-    # Get basic device info
-    local device_info=""
-    if smartctl -i "$device" >/dev/null 2>&1; then
-        device_info=$(smartctl -i "$device" 2>/dev/null || echo "Failed to get device info")
+    # Get device info in JSON format
+    local device_info="{}"
+    if smartctl -i -j "$device" >/dev/null 2>&1; then
+        local temp_info=$(smartctl -i -j "$device" 2>/dev/null || echo "{}")
+        # Validate JSON output
+        if command -v jq &> /dev/null; then
+            if echo "$temp_info" | jq empty >/dev/null 2>&1; then
+                device_info="$temp_info"
+            else
+                log "WARNING" "Invalid JSON from device info for $device, using empty object"
+                device_info="{}"
+            fi
+        else
+            if validate_json_basic "$temp_info"; then
+                device_info="$temp_info"
+            else
+                log "WARNING" "Invalid JSON from device info for $device, using empty object"
+                device_info="{}"
+            fi
+        fi
     else
-        device_info="Device info not available"
+        device_info="{}"
     fi
     
-    # Get SMART attributes
-    local smart_attrs=""
-    if smartctl -A "$device" >/dev/null 2>&1; then
-        smart_attrs=$(smartctl -A "$device" 2>/dev/null || echo "Failed to get SMART attributes")
+    # Get SMART attributes in JSON format
+    local smart_attrs="{}"
+    if smartctl -A -j "$device" >/dev/null 2>&1; then
+        local temp_attrs=$(smartctl -A -j "$device" 2>/dev/null || echo "{}")
+        # Validate JSON output
+        if command -v jq &> /dev/null; then
+            if echo "$temp_attrs" | jq empty >/dev/null 2>&1; then
+                smart_attrs="$temp_attrs"
+            else
+                log "WARNING" "Invalid JSON from SMART attributes for $device, using empty object"
+                smart_attrs="{}"
+            fi
+        else
+            if validate_json_basic "$temp_attrs"; then
+                smart_attrs="$temp_attrs"
+            else
+                log "WARNING" "Invalid JSON from SMART attributes for $device, using empty object"
+                smart_attrs="{}"
+            fi
+        fi
     else
-        smart_attrs="SMART attributes not available"
+        smart_attrs="{}"
     fi
     
-    # Get SMART health status
-    local smart_health=""
-    if smartctl -H "$device" >/dev/null 2>&1; then
-        smart_health=$(smartctl -H "$device" 2>/dev/null || echo "Failed to get SMART health")
+    # Get SMART health status in JSON format
+    local smart_health="{}"
+    if smartctl -H -j "$device" >/dev/null 2>&1; then
+        local temp_health=$(smartctl -H -j "$device" 2>/dev/null || echo "{}")
+        # Validate JSON output
+        if command -v jq &> /dev/null; then
+            if echo "$temp_health" | jq empty >/dev/null 2>&1; then
+                smart_health="$temp_health"
+            else
+                log "WARNING" "Invalid JSON from SMART health for $device, using empty object"
+                smart_health="{}"
+            fi
+        else
+            if validate_json_basic "$temp_health"; then
+                smart_health="$temp_health"
+            else
+                log "WARNING" "Invalid JSON from SMART health for $device, using empty object"
+                smart_health="{}"
+            fi
+        fi
     else
-        smart_health="SMART health not available"
+        smart_health="{}"
     fi
     
-    # Get SMART error log
-    local smart_errors=""
-    if smartctl -l error "$device" >/dev/null 2>&1; then
-        smart_errors=$(smartctl -l error "$device" 2>/dev/null || echo "Failed to get error log")
+    # Get SMART error log in JSON format
+    local smart_errors="{}"
+    if smartctl -l error -j "$device" >/dev/null 2>&1; then
+        local temp_errors=$(smartctl -l error -j "$device" 2>/dev/null || echo "{}")
+        # Validate JSON output
+        if command -v jq &> /dev/null; then
+            if echo "$temp_errors" | jq empty >/dev/null 2>&1; then
+                smart_errors="$temp_errors"
+            else
+                log "WARNING" "Invalid JSON from error log for $device, using empty object"
+                smart_errors="{}"
+            fi
+        else
+            if validate_json_basic "$temp_errors"; then
+                smart_errors="$temp_errors"
+            else
+                log "WARNING" "Invalid JSON from error log for $device, using empty object"
+                smart_errors="{}"
+            fi
+        fi
     else
-        smart_errors="Error log not available"
+        smart_errors="{}"
     fi
     
-    # Get SMART selftest log
-    local smart_selftest=""
-    if smartctl -l selftest "$device" >/dev/null 2>&1; then
-        smart_selftest=$(smartctl -l selftest "$device" 2>/dev/null || echo "Failed to get selftest log")
+    # Get SMART selftest log in JSON format
+    local smart_selftest="{}"
+    if smartctl -l selftest -j "$device" >/dev/null 2>&1; then
+        local temp_selftest=$(smartctl -l selftest -j "$device" 2>/dev/null || echo "{}")
+        # Validate JSON output
+        if command -v jq &> /dev/null; then
+            if echo "$temp_selftest" | jq empty >/dev/null 2>&1; then
+                smart_selftest="$temp_selftest"
+            else
+                log "WARNING" "Invalid JSON from selftest log for $device, using empty object"
+                smart_selftest="{}"
+            fi
+        else
+            if validate_json_basic "$temp_selftest"; then
+                smart_selftest="$temp_selftest"
+            else
+                log "WARNING" "Invalid JSON from selftest log for $device, using empty object"
+                smart_selftest="{}"
+            fi
+        fi
     else
-        smart_selftest="Selftest log not available"
+        smart_selftest="{}"
     fi
     
-    # Combine all information
+    # Combine all JSON information into a single JSON structure
     cat > "$info_file" << EOF
-$device_info
-
-$smart_attrs
-
-$smart_health
-
-$smart_errors
-
-$smart_selftest
+{
+  "device_info": $device_info,
+  "smart_attributes": $smart_attrs,
+  "smart_health": $smart_health,
+  "smart_errors": $smart_errors,
+  "smart_selftest": $smart_selftest
+}
 EOF
     
     # Log the completion message to stderr
@@ -146,12 +240,15 @@ convert_to_json() {
     local device="$2"
     
     if [[ "$JSON_FORMAT" == "basic" ]]; then
-        # Basic JSON conversion without jq
+        # Basic JSON conversion without jq - add timestamp and device to existing JSON
+        # Read the input file content
+        local smart_data=$(cat "$input_file")
+        
         cat > "$input_file.json" << EOF
 {
   "device": "$device",
-  "timestamp": "$(date -Iseconds)",
-  "raw_output": $(cat "$input_file" | sed 's/\\/\\\\/g' | sed 's/"/\\"/g' | tr '\n' ' ' | sed 's/^/"/' | sed 's/$/"/')
+  "timestamp": $(date +%s),
+  "smart_data": $smart_data
 }
 EOF
     else
@@ -160,22 +257,22 @@ EOF
             if [[ "$JSON_FORMAT" == "compact" ]]; then
                 jq -c -n \
                     --arg device "$device" \
-                    --arg timestamp "$(date -Iseconds)" \
-                    --rawfile raw_output "$input_file" \
+                    --argjson timestamp "$(date +%s)" \
+                    --slurpfile smart_data "$input_file" \
                     '{
                         device: $device,
                         timestamp: $timestamp,
-                        raw_output: $raw_output
+                        smart_data: $smart_data[0]
                     }' > "$input_file.json"
             else
                 jq -n \
                     --arg device "$device" \
-                    --arg timestamp "$(date -Iseconds)" \
-                    --rawfile raw_output "$input_file" \
+                    --argjson timestamp "$(date +%s)" \
+                    --slurpfile smart_data "$input_file" \
                     '{
                         device: $device,
                         timestamp: $timestamp,
-                        raw_output: $raw_output
+                        smart_data: $smart_data[0]
                     }' > "$input_file.json"
             fi
         else
@@ -185,6 +282,80 @@ EOF
             return
         fi
     fi
+}
+
+# Function to create index.json file
+create_index() {
+    local devices=("$@")
+    local index_file="${OUTPUT_DIR}/index.json"
+    local current_timestamp=$(date +%s)
+    local json_files=()
+    
+    # Build list of JSON files that should exist
+    for device in "${devices[@]}"; do
+        local device_name=$(basename "$device")
+        local json_file="${device_name}_smart.json"
+        json_files+=("$json_file")
+    done
+    
+    # Create index.json
+    if [[ "$JSON_FORMAT" == "basic" ]]; then
+        cat > "$index_file" << EOF
+{
+  "last_run": $current_timestamp,
+  "last_run_iso": "$(date -Iseconds)",
+  "total_devices": ${#devices[@]},
+  "json_files": [
+EOF
+        # Add each JSON file to the list
+        for ((i=0; i<${#json_files[@]}; i++)); do
+            if [[ $i -gt 0 ]]; then
+                echo "    ," >> "$index_file"
+            fi
+            echo "    \"${json_files[$i]}\"" >> "$index_file"
+        done
+        
+        cat >> "$index_file" << EOF
+  ]
+}
+EOF
+    else
+        # Use jq for proper JSON formatting
+        if command -v jq &> /dev/null; then
+            if [[ "$JSON_FORMAT" == "compact" ]]; then
+                jq -c -n \
+                    --argjson last_run "$current_timestamp" \
+                    --arg last_run_iso "$(date -Iseconds)" \
+                    --argjson total_devices "${#devices[@]}" \
+                    --argjson json_files "$(printf '%s\n' "${json_files[@]}" | jq -R . | jq -s .)" \
+                    '{
+                        last_run: $last_run,
+                        last_run_iso: $last_run_iso,
+                        total_devices: $total_devices,
+                        json_files: $json_files
+                    }' > "$index_file"
+            else
+                jq -n \
+                    --argjson last_run "$current_timestamp" \
+                    --arg last_run_iso "$(date -Iseconds)" \
+                    --argjson total_devices "${#devices[@]}" \
+                    --argjson json_files "$(printf '%s\n' "${json_files[@]}" | jq -R . | jq -s .)" \
+                    '{
+                        last_run: $last_run,
+                        last_run_iso: $last_run_iso,
+                        total_devices: $total_devices,
+                        json_files: $json_files
+                    }' > "$index_file"
+            fi
+        else
+            # Fallback to basic if jq is not available
+            JSON_FORMAT="basic"
+            create_index "${devices[@]}"
+            return
+        fi
+    fi
+    
+    log "INFO" "Created index.json with ${#devices[@]} devices"
 }
 
 # Function to process a single device
@@ -332,6 +503,9 @@ scan_devices() {
             local output_file="${OUTPUT_DIR}/${device_name}_smart.json"
             log "INFO" "  $device -> $output_file"
         done
+        
+        # Create index.json even in dry run mode
+        create_index "${devices[@]}"
         return 0
     fi
     
@@ -364,6 +538,9 @@ scan_devices() {
         log "DEBUG" "Continuing to next device..."
     done
     
+    # Create index.json after processing all devices
+    create_index "${devices[@]}"
+    
     log "INFO" "Processing complete: $success_count successful, $error_count errors"
     return $error_count
 }
@@ -379,11 +556,8 @@ create_config() {
 # Output directory for JSON files
 OUTPUT_DIR="${OUTPUT_DIR}"
 
-# Log file location
+# Log file location (set to "" to disable logging)
 LOG_FILE="${LOG_FILE}"
-
-# smartctl options
-SMARTCTL_OPTS="${SMARTCTL_OPTS}"
 
 # Device patterns to scan (space-separated)
 DEVICE_PATTERN="${DEVICE_PATTERN}"
@@ -423,10 +597,6 @@ main() {
                 EXCLUDE_PATTERNS="$2"
                 shift 2
                 ;;
-            -s|--smart-opts)
-                SMARTCTL_OPTS="$2"
-                shift 2
-                ;;
             -f|--format)
                 JSON_FORMAT="$2"
                 shift 2
@@ -459,15 +629,20 @@ main() {
     # Create output directory if it doesn't exist
     mkdir -p "$OUTPUT_DIR"
     
-    # Create log file directory if it doesn't exist
-    mkdir -p "$(dirname "$LOG_FILE")"
+    # Create log file directory if it doesn't exist and LOG_FILE is specified
+    if [[ -n "$LOG_FILE" ]]; then
+        mkdir -p "$(dirname "$LOG_FILE")"
+        # Initialize log file
+        log "INFO" "Starting SMART monitor script"
+    fi
     
-    # Initialize log file
-    log "INFO" "Starting SMART monitor script"
     log "INFO" "Output directory: $OUTPUT_DIR"
-    log "INFO" "Log file: $LOG_FILE"
+    if [[ -n "$LOG_FILE" ]]; then
+        log "INFO" "Log file: $LOG_FILE"
+    else
+        log "INFO" "Log file: None (logging disabled)"
+    fi
     log "INFO" "Device pattern: $DEVICE_PATTERN"
-    log "INFO" "smartctl options: $SMARTCTL_OPTS"
     log "INFO" "JSON format: $JSON_FORMAT"
     
     # Check dependencies
