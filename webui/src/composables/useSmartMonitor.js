@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import axios from 'axios'
-import { computed, watchEffect, ref } from 'vue'
+import { computed, watchEffect, ref, unref } from 'vue'
 
 // Check if we're in development mode
 const isDevelopment = import.meta.env.DEV
@@ -142,6 +142,24 @@ const transformDeviceData = (deviceData) => {
     const serial = deviceInfo.serial_number || deviceInfo.Serial_Number || 'Unknown Serial'
     const firmware = deviceInfo.firmware_version || deviceInfo.Firmware_Version || 'Unknown Firmware'
     
+    // Extract device type information
+    let deviceType = 'Unknown'
+    if (deviceInfo.device?.type) {
+        deviceType = deviceInfo.device.type.toUpperCase()
+        console.log('🔍 DEBUG: Device type from device.type:', deviceType)
+    } else if (deviceInfo.device?.protocol) {
+        deviceType = deviceInfo.device.protocol
+        console.log('🔍 DEBUG: Device type from device.protocol:', deviceType)
+    } else if (smartAttrs.nvme_smart_health_information_log) {
+        deviceType = 'NVMe'
+        console.log('🔍 DEBUG: Device type inferred as NVMe from smart attributes')
+    } else {
+        deviceType = 'SATA/SCSI'
+        console.log('🔍 DEBUG: Device type inferred as SATA/SCSI')
+    }
+    
+    console.log('🔍 DEBUG: Final deviceType value:', deviceType)
+
     // Handle different capacity fields
     let size = 'Unknown Size'
     if (deviceInfo.nvme_total_capacity) {
@@ -239,6 +257,33 @@ const transformDeviceData = (deviceData) => {
                 threshold: 0,
                 raw: nvmeData.power_cycles.toString(),
                 status: 'Good'
+            },
+            {
+                id: 'media_errors',
+                name: 'Media Errors',
+                value: nvmeData.media_errors === 0 ? 100 : 0,
+                worst: nvmeData.media_errors === 0 ? 100 : 0,
+                threshold: 0,
+                raw: nvmeData.media_errors.toString(),
+                status: nvmeData.media_errors === 0 ? 'Good' : 'Warning'
+            },
+            {
+                id: 'num_err_log_entries',
+                name: 'Error Log Entries',
+                value: nvmeData.num_err_log_entries === 0 ? 100 : 50,
+                worst: nvmeData.num_err_log_entries === 0 ? 100 : 50,
+                threshold: 0,
+                raw: nvmeData.num_err_log_entries.toString(),
+                status: nvmeData.num_err_log_entries === 0 ? 'Good' : 'Warning'
+            },
+            {
+                id: 'unsafe_shutdowns',
+                name: 'Unsafe Shutdowns',
+                value: nvmeData.unsafe_shutdowns === 0 ? 100 : 50,
+                worst: nvmeData.unsafe_shutdowns === 0 ? 100 : 50,
+                threshold: 0,
+                raw: nvmeData.unsafe_shutdowns.toString(),
+                status: nvmeData.unsafe_shutdowns === 0 ? 'Good' : 'Warning'
             }
         ]
     } else {
@@ -254,38 +299,19 @@ const transformDeviceData = (deviceData) => {
                 raw: attr.raw || '0',
                 status: (attr.value || 0) > (attr.threshold || 0) ? 'Good' : 'Warning'
             }))
-    }
-
-    // Transform error log - handle both traditional and NVMe formats
-    let errorLog = []
-    if (smartAttrs.nvme_smart_health_information_log) {
-        const nvmeData = smartAttrs.nvme_smart_health_information_log
-        errorLog = [
-            {
-                timestamp: lastCheck,
-                type: 'Media Errors',
-                count: nvmeData.media_errors || 0
-            },
-            {
-                timestamp: lastCheck,
-                type: 'Error Log Entries',
-                count: nvmeData.num_err_log_entries || 0
-            },
-            {
-                timestamp: lastCheck,
-                type: 'Unsafe Shutdowns',
-                count: nvmeData.unsafe_shutdowns || 0
-            }
-        ]
-    } else {
-        // Traditional error log format
-        errorLog = Object.entries(smartErrors)
-            .filter(([key, error]) => error && typeof error === 'object')
-            .map(([key, error]) => ({
-                timestamp: lastCheck,
-                type: key,
-                count: error.count || error.value || 0
-            }))
+        
+        // Add error-related SMART attributes for traditional drives
+        if (smartHealth.smart_status?.passed !== undefined) {
+            smartAttributes.push({
+                id: 'smart_status',
+                name: 'SMART Status',
+                value: smartHealth.smart_status.passed ? 100 : 0,
+                worst: smartHealth.smart_status.passed ? 100 : 0,
+                threshold: 0,
+                raw: smartHealth.smart_status.passed ? 'PASSED' : 'FAILED',
+                status: smartHealth.smart_status.passed ? 'Good' : 'Warning'
+            })
+        }
     }
 
     // Transform self-test log - handle both traditional and NVMe formats
@@ -312,20 +338,26 @@ const transformDeviceData = (deviceData) => {
             }))
     }
 
-    return {
-        id: deviceData.device || 'unknown',
-        name: deviceData.device || 'unknown',
+    const result = {
+        id: (deviceData.device || 'unknown').replace('/dev/', ''),
+        name: (deviceData.device || 'unknown').replace('/dev/', ''),
         model,
         serial,
         firmware,
+        deviceType,
         size,
         health,
         powerOnHours,
         lastCheck,
         smartAttributes,
-        errorLog,
+        errorLog: [], // No longer separate error log, included in smartAttributes
         selftestLog
     }
+    
+    console.log('🔍 DEBUG: transformDeviceData returning result:', result)
+    console.log('🔍 DEBUG: deviceType in result:', result.deviceType)
+    
+    return result
 }
 
 /**
@@ -473,7 +505,11 @@ export function useSmartMonitor(options = {}) {
         refreshDevice,
         
         // Transform function for external use
-        transformDeviceData
+        transformDeviceData,
+        
+        // Export fetch functions for direct use
+        fetchDeviceData,
+        fetchIndex
     }
 }
 
@@ -536,19 +572,43 @@ export function useSmartOverview() {
 
 /**
  * Composable for device detail page
- * @param {string} deviceName - Device name to fetch details for
+ * @param {string|Ref<string>} deviceName - Device name to fetch details for
  * @returns {Object} Device detail data and functions
  */
 export function useSmartDevice(deviceName) {
     const { deviceQuery, refreshDevice } = useSmartMonitor()
     
-    const deviceQueryInstance = deviceQuery(deviceName)
+    // Get the device name value
+    const name = unref(deviceName)
+    console.log('🔍 DEBUG: useSmartDevice - deviceName:', name)
+    
+    if (!name) {
+        console.log('🔍 DEBUG: useSmartDevice - no device name, returning empty state')
+        return {
+            device: ref(null),
+            isLoading: ref(false),
+            isError: ref(false),
+            error: ref(null),
+            refresh: () => {}
+        }
+    }
+    
+    // Call deviceQuery at the top level (this is required for Vue Query)
+    const deviceQueryInstance = deviceQuery(name)
+    console.log('🔍 DEBUG: useSmartDevice - deviceQuery result:', deviceQueryInstance)
     
     return {
-        device: deviceQueryInstance.data,
-        isLoading: deviceQueryInstance.isLoading,
-        isError: deviceQueryInstance.isError,
-        error: deviceQueryInstance.error,
-        refresh: () => refreshDevice(deviceName)
+        device: computed(() => deviceQueryInstance.data || null),
+        isLoading: computed(() => deviceQueryInstance.isLoading || false),
+        isError: computed(() => deviceQueryInstance.isError || false),
+        error: computed(() => deviceQueryInstance.error || null),
+        refresh: () => {
+            if (name) {
+                refreshDevice(name)
+            }
+        }
     }
 } 
+
+// Export these functions at module level for direct import
+export { fetchIndex, fetchDeviceData, transformDeviceData } 

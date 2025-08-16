@@ -7,6 +7,7 @@ import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
 import { useRouter } from 'vue-router'
 import { useSmartOverview } from '@/composables/useSmartMonitor'
+import { watchEffect } from 'vue'
 
 const router = useRouter()
 
@@ -22,6 +23,15 @@ const {
     lastCheck
 } = useSmartOverview()
 
+// Debug: Log devices data when it changes
+watchEffect(() => {
+    console.log('🔍 DEBUG: Overview - devices changed:', devices.value)
+    if (devices.value && devices.value.length > 0) {
+        console.log('🔍 DEBUG: Overview - first device structure:', devices.value[0])
+        console.log('🔍 DEBUG: Overview - first device deviceType:', devices.value[0]?.deviceType)
+    }
+})
+
 const healthSeverity = (health) => {
     switch (health) {
         case 'Good': return 'success'
@@ -32,7 +42,17 @@ const healthSeverity = (health) => {
 }
 
 const viewDetails = (device) => {
-    router.push(`/detail/${device.id}`)
+    console.log('🔍 DEBUG: viewDetails called with device:', device)
+    console.log('🔍 DEBUG: device.id:', device.id)
+    console.log('🔍 DEBUG: device.name:', device.name)
+    const targetPath = `/detail/${device.id}`
+    console.log('🔍 DEBUG: Navigating to:', targetPath)
+    try {
+        router.push(targetPath)
+        console.log('🔍 DEBUG: Router.push successful')
+    } catch (error) {
+        console.error('🔍 DEBUG: Router.push failed:', error)
+    }
 }
 </script>
 
