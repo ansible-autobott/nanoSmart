@@ -42,9 +42,6 @@ app.use(PrimeVue, {
 import router from './router'
 app.use(router)
 
-// focus trap
-import FocusTrap from 'primevue/focustrap'
-app.directive('focustrap', FocusTrap)
 
 // vue query
 const queryClient = new QueryClient({

@@ -4,7 +4,6 @@ import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import ProgressBar from 'primevue/progressbar'
 import { useRouter } from 'vue-router'
 import { useSmartOverview } from '@/composables/useSmartMonitor'
 import { watchEffect } from 'vue'
@@ -121,20 +120,6 @@ const viewDetails = (device) => {
                         </template>
                     </Column>
                     
-                    <Column field="lifespan" header="Lifespan" sortable>
-                        <template #body="{ data }">
-                            <div class="lifespan-cell">
-                                <span>{{ Math.round((data.powerOnHours / 50000) * 100) }}%</span>
-                                <ProgressBar 
-                                    :value="(data.powerOnHours / 50000) * 100" 
-                                    :max="100"
-                                    :showValue="false"
-                                    class="lifespan-progress"
-                                />
-                            </div>
-                        </template>
-                    </Column>
-                    
                     <Column header="Actions">
                         <template #body="{ data }">
                             <Button 
@@ -199,16 +184,6 @@ const viewDetails = (device) => {
 
 .devices-table {
     margin-top: 1rem;
-}
-
-.lifespan-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.lifespan-progress {
-    height: 0.5rem;
 }
 
 .detail-button {
