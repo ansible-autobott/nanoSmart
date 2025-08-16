@@ -1,9 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import axios from 'axios'
-import { computed } from 'vue'
+import { computed, watchEffect, ref } from 'vue'
 
 // Check if we're in development mode
 const isDevelopment = import.meta.env.DEV
+console.log('🔍 DEBUG: Environment check - isDevelopment =', isDevelopment)
+console.log('🔍 DEBUG: import.meta.env =', import.meta.env)
+console.log('🔍 DEBUG: VITE_SMART_API_URL =', import.meta.env.VITE_SMART_API_URL)
 
 // API Endpoints - these would be configured based on your backend setup
 const API_BASE_URL = import.meta.env.VITE_SMART_API_URL || '/api/smart'
@@ -12,6 +15,12 @@ const INDEX_ENDPOINT = `${API_BASE_URL}/index.json`
 // Sample data endpoints for development
 const SAMPLE_BASE_URL = '/sampledata'
 const SAMPLE_INDEX_ENDPOINT = `${SAMPLE_BASE_URL}/index.json`
+
+console.log('🔍 DEBUG: API endpoints configured:')
+console.log('🔍 DEBUG: API_BASE_URL =', API_BASE_URL)
+console.log('🔍 DEBUG: INDEX_ENDPOINT =', INDEX_ENDPOINT)
+console.log('🔍 DEBUG: SAMPLE_BASE_URL =', SAMPLE_BASE_URL)
+console.log('🔍 DEBUG: SAMPLE_INDEX_ENDPOINT =', SAMPLE_INDEX_ENDPOINT)
 
 // Helper: standard response handlers
 const extractData = (res) => res.data
@@ -22,12 +31,20 @@ const extractItems = (res) => res.data.items || []
  * @returns {Promise<Object>} Index data with device list and metadata
  */
 const fetchIndex = async () => {
+    console.log('🔍 DEBUG: fetchIndex called')
     if (isDevelopment) {
         console.log('📊 Development: Fetching sample index data from sampledata folder')
-        const { data } = await axios.get(SAMPLE_INDEX_ENDPOINT)
-        return data
+        try {
+            const { data } = await axios.get(SAMPLE_INDEX_ENDPOINT)
+            console.log('🔍 DEBUG: Sample index data received:', data)
+            return data
+        } catch (error) {
+            console.error('🔍 DEBUG: Error fetching sample index:', error)
+            throw error
+        }
     }
     
+    console.log('📊 Production: Fetching index data from API')
     const { data } = await axios.get(INDEX_ENDPOINT)
     return data
 }
@@ -38,13 +55,22 @@ const fetchIndex = async () => {
  * @returns {Promise<Object>} Device SMART data
  */
 const fetchDeviceData = async (deviceName) => {
+    console.log('🔍 DEBUG: fetchDeviceData called for:', deviceName)
     if (isDevelopment) {
         console.log(`📊 Development: Fetching sample device data for ${deviceName} from sampledata folder`)
-        const deviceEndpoint = `${SAMPLE_BASE_URL}/${deviceName}_smart.json`
-        const { data } = await axios.get(deviceEndpoint)
-        return data
+        try {
+            const deviceEndpoint = `${SAMPLE_BASE_URL}/${deviceName}_smart.json`
+            console.log('🔍 DEBUG: Sample device endpoint:', deviceEndpoint)
+            const { data } = await axios.get(deviceEndpoint)
+            console.log('🔍 DEBUG: Sample device data received for', deviceName, ':', data)
+            return data
+        } catch (error) {
+            console.error('🔍 DEBUG: Error fetching sample device data for', deviceName, ':', error)
+            throw error
+        }
     }
     
+    console.log(`📊 Production: Fetching device data for ${deviceName} from API`)
     const deviceEndpoint = `${API_BASE_URL}/${deviceName}_smart.json`
     const { data } = await axios.get(deviceEndpoint)
     return data
@@ -56,15 +82,30 @@ const fetchDeviceData = async (deviceName) => {
  * @returns {Promise<Array>} Array of device SMART data
  */
 const fetchMultipleDevices = async (deviceNames) => {
+    console.log('🔍 DEBUG: fetchMultipleDevices called with deviceNames =', deviceNames)
+    
     if (isDevelopment) {
         console.log(`📊 Development: Fetching multiple sample device data for ${deviceNames.join(', ')} from sampledata folder`)
-        const promises = deviceNames.map(deviceName => fetchDeviceData(deviceName))
-        const results = await Promise.allSettled(promises)
-        return results
-            .filter(result => result.status === 'fulfilled')
-            .map(result => result.value)
+        const promises = deviceNames.map(deviceName => {
+            const deviceEndpoint = `${SAMPLE_BASE_URL}/${deviceName}_smart.json`
+            console.log('🔍 DEBUG: Fetching from sample endpoint:', deviceEndpoint)
+            return axios.get(deviceEndpoint).then(res => res.data)
+        })
+        
+        try {
+            const results = await Promise.allSettled(promises)
+            const successfulResults = results
+                .filter(result => result.status === 'fulfilled')
+                .map(result => result.value)
+            console.log('🔍 DEBUG: fetchMultipleDevices successful results count:', successfulResults.length)
+            return successfulResults
+        } catch (error) {
+            console.error('🔍 DEBUG: Error in fetchMultipleDevices:', error)
+            throw error
+        }
     }
     
+    console.log(`📊 Production: Fetching multiple device data for ${deviceNames.join(', ')} from API`)
     const promises = deviceNames.map(deviceName => fetchDeviceData(deviceName))
     const results = await Promise.allSettled(promises)
     
@@ -80,11 +121,16 @@ const fetchMultipleDevices = async (deviceNames) => {
  * @returns {Object} Transformed device data
  */
 const transformDeviceData = (deviceData) => {
+    console.log('🔍 DEBUG: transformDeviceData called with:', deviceData)
+    
     if (!deviceData || !deviceData.smart_data) {
+        console.log('🔍 DEBUG: No deviceData or smart_data, returning null')
         return null
     }
 
     const { smart_data } = deviceData
+    console.log('🔍 DEBUG: smart_data structure:', smart_data)
+    
     const deviceInfo = smart_data.device_info || {}
     const smartAttrs = smart_data.smart_attributes || {}
     const smartHealth = smart_data.smart_health || {}
@@ -112,6 +158,9 @@ const transformDeviceData = (deviceData) => {
         health = smartHealth.smart_status.passed ? 'Good' : 'Warning'
     } else if (smartHealth.smart_status?.overall_health) {
         health = smartHealth.smart_status.overall_health === 'PASSED' ? 'Good' : 'Warning'
+    } else if (smart_data.smart_status?.passed !== undefined) {
+        // Handle case where smart_status is at root level (like in sample data)
+        health = smart_data.smart_status.passed ? 'Good' : 'Warning'
     }
 
     // Extract power on hours from various possible locations
@@ -281,6 +330,12 @@ const transformDeviceData = (deviceData) => {
 
 /**
  * Main composable for SMART monitoring data
+ * 
+ * This composable automatically handles the loading sequence:
+ * 1. First loads the index.json to get the list of available devices
+ * 2. Then automatically loads SMART data for all devices found in json_files
+ * 3. Provides reactive data that updates when either the index or device data changes
+ * 
  * @param {Object} options - Configuration options
  * @returns {Object} SMART monitoring data and functions
  */
@@ -292,13 +347,56 @@ export function useSmartMonitor(options = {}) {
     const deviceQueryKey = (deviceName) => ['smart', 'device', deviceName]
     const devicesQueryKey = (deviceNames) => ['smart', 'devices', deviceNames]
 
-    // Fetch index data
-    const indexQuery = useQuery({
-        queryKey: indexQueryKey,
-        queryFn: fetchIndex,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000,   // 10 minutes
-    })
+    // Simple approach: manually trigger data loading
+    const allDevicesData = ref([])
+    const isAllDevicesLoading = ref(false)
+    const isAllDevicesError = ref(false)
+    const allDevicesError = ref(null)
+
+    // Function to load all data
+    const loadAllData = async () => {
+        console.log('🔍 DEBUG: loadAllData called')
+        isAllDevicesLoading.value = true
+        isAllDevicesError.value = false
+        allDevicesError.value = null
+        
+        try {
+            // First fetch the index
+            const indexData = await fetchIndex()
+            console.log('🔍 DEBUG: Index data fetched:', indexData)
+            
+            if (!indexData?.json_files || indexData.json_files.length === 0) {
+                console.log('🔍 DEBUG: No json_files found, setting empty array')
+                allDevicesData.value = []
+                return
+            }
+            
+            // Extract device names
+            const deviceNames = indexData.json_files.map(filename => 
+                filename.replace('_smart.json', '')
+            )
+            console.log('🔍 DEBUG: Device names extracted:', deviceNames)
+            
+            // Then fetch device data
+            const devicesData = await fetchMultipleDevices(deviceNames)
+            console.log('🔍 DEBUG: Devices data fetched:', devicesData)
+            
+            // Transform the data
+            const transformedData = devicesData.map(transformDeviceData).filter(Boolean)
+            console.log('🔍 DEBUG: Data transformed:', transformedData)
+            
+            allDevicesData.value = transformedData
+        } catch (error) {
+            console.error('🔍 DEBUG: Error in loadAllData:', error)
+            isAllDevicesError.value = true
+            allDevicesError.value = error
+        } finally {
+            isAllDevicesLoading.value = false
+        }
+    }
+
+    // Load data when component mounts
+    loadAllData()
 
     // Fetch data for a specific device
     const deviceQuery = (deviceName) => useQuery({
@@ -320,20 +418,32 @@ export function useSmartMonitor(options = {}) {
         select: (devicesData) => devicesData.map(transformDeviceData).filter(Boolean)
     })
 
-    // Helper function to get all devices data
-    const getAllDevices = computed(() => {
-        if (!indexQuery.data?.json_files) return []
-        
-        const deviceNames = indexQuery.data.json_files.map(filename => 
-            filename.replace('_smart.json', '')
-        )
-        
-        return devicesQuery(deviceNames)
+    // Computed properties for all devices data
+    const allDevicesDataComputed = computed(() => {
+        const data = allDevicesData.value
+        console.log('🔍 DEBUG: allDevicesData computed =', data)
+        return data
+    })
+    const isAllDevicesLoadingComputed = computed(() => {
+        const loading = isAllDevicesLoading.value
+        console.log('🔍 DEBUG: isAllDevicesLoading computed =', loading)
+        return loading
+    })
+    const isAllDevicesErrorComputed = computed(() => {
+        const error = isAllDevicesError.value
+        console.log('🔍 DEBUG: isAllDevicesError computed =', error)
+        return error
+    })
+    const allDevicesErrorComputed = computed(() => {
+        const err = allDevicesError.value
+        console.log('🔍 DEBUG: allDevicesError computed =', err)
+        return err
     })
 
     // Refresh all data
     const refreshAll = () => {
-        queryClient.invalidateQueries({ queryKey: ['smart'] })
+        console.log('🔍 DEBUG: refreshAll called')
+        loadAllData()
     }
 
     // Refresh specific device
@@ -343,15 +453,20 @@ export function useSmartMonitor(options = {}) {
 
     return {
         // Index data
-        index: indexQuery.data,
-        isIndexLoading: indexQuery.isLoading,
-        isIndexError: indexQuery.isError,
-        indexError: indexQuery.error,
+        index: allDevicesDataComputed,
+        isIndexLoading: isAllDevicesLoadingComputed,
+        isIndexError: isAllDevicesErrorComputed,
+        indexError: allDevicesErrorComputed,
         
         // Device queries
         deviceQuery,
         devicesQuery,
-        getAllDevices,
+        
+        // All devices data (automatically loaded after index)
+        allDevicesData: allDevicesDataComputed,
+        isAllDevicesLoading: isAllDevicesLoadingComputed,
+        isAllDevicesError: isAllDevicesErrorComputed,
+        allDevicesError: allDevicesErrorComputed,
         
         // Helper functions
         refreshAll,
@@ -367,16 +482,44 @@ export function useSmartMonitor(options = {}) {
  * @returns {Object} Overview data and functions
  */
 export function useSmartOverview() {
-    const { index, isIndexLoading, isIndexError, indexError, getAllDevices, refreshAll } = useSmartMonitor()
+    const { 
+        index, 
+        isIndexLoading, 
+        isIndexError, 
+        indexError, 
+        allDevicesData, 
+        isAllDevicesLoading, 
+        isAllDevicesError, 
+        allDevicesError, 
+        refreshAll 
+    } = useSmartMonitor()
+    
+    console.log('🔍 DEBUG: useSmartOverview called')
+    console.log('🔍 DEBUG: allDevicesData =', allDevicesData)
+    console.log('🔍 DEBUG: isIndexLoading =', isIndexLoading)
+    console.log('🔍 DEBUG: isAllDevicesLoading =', isAllDevicesLoading)
     
     const devices = computed(() => {
-        const devicesQuery = getAllDevices.value
-        return devicesQuery?.data?.value || []
+        const data = allDevicesData.value
+        console.log('🔍 DEBUG: devices computed =', data)
+        return data
     })
     
-    const isLoading = computed(() => isIndexLoading.value || getAllDevices.value?.isLoading)
-    const isError = computed(() => isIndexError.value || getAllDevices.value?.isError)
-    const error = computed(() => indexError.value || getAllDevices.value?.error)
+    const isLoading = computed(() => {
+        const loading = isIndexLoading.value || isAllDevicesLoading.value
+        console.log('🔍 DEBUG: isLoading computed =', loading)
+        return loading
+    })
+    const isError = computed(() => {
+        const error = isIndexError.value || isAllDevicesError.value
+        console.log('🔍 DEBUG: isError computed =', error)
+        return error
+    })
+    const error = computed(() => {
+        const err = indexError.value || allDevicesError.value
+        console.log('🔍 DEBUG: error computed =', err)
+        return err
+    })
     
     return {
         devices,

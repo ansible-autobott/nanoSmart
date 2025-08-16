@@ -47,7 +47,7 @@ export default defineConfig({
   configureServer(server) {
     server.middlewares.use('/sampledata', (req, res, next) => {
       if (req.url) {
-        const filePath = path.join(__dirname, 'sampledata', req.url)
+        const filePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'sampledata', req.url)
         if (fs.existsSync(filePath)) {
           const content = fs.readFileSync(filePath, 'utf-8')
           res.setHeader('Content-Type', 'application/json')

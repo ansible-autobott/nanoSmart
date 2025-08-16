@@ -18,7 +18,6 @@ const {
     error, 
     refreshAll,
     totalDevices,
-    healthyDevices,
     warningDevices,
     lastCheck
 } = useSmartOverview()
@@ -43,56 +42,6 @@ const viewDetails = (device) => {
             <h1>SMART Monitor</h1>
         </div>
         
-        <div class="stats-grid">
-            <Card class="stat-card">
-                <template #title>
-                    <div class="stat-header">
-                        <i class="pi pi-hdd stat-icon"></i>
-                        Total Devices
-                    </div>
-                </template>
-                <template #content>
-                    <div class="stat-value">{{ totalDevices }}</div>
-                </template>
-            </Card>
-
-            <Card class="stat-card">
-                <template #title>
-                    <div class="stat-header">
-                        <i class="pi pi-check-circle stat-icon good"></i>
-                        Healthy Devices
-                    </div>
-                </template>
-                <template #content>
-                    <div class="stat-value">{{ healthyDevices }}</div>
-                </template>
-            </Card>
-
-            <Card class="stat-card">
-                <template #title>
-                    <div class="stat-header">
-                        <i class="pi pi-exclamation-triangle stat-icon warning"></i>
-                        Warning Devices
-                    </div>
-                </template>
-                <template #content>
-                    <div class="stat-value">{{ warningDevices }}</div>
-                </template>
-            </Card>
-
-            <Card class="stat-card">
-                <template #title>
-                    <div class="stat-header">
-                        <i class="pi pi-clock stat-icon"></i>
-                        Last Check
-                    </div>
-                </template>
-                <template #content>
-                    <div class="stat-value">{{ lastCheck }}</div>
-                </template>
-            </Card>
-        </div>
-
         <Card class="devices-table-card">
             <template #title>
                 <div class="table-header">
@@ -200,48 +149,6 @@ const viewDetails = (device) => {
     color: var(--c-primary-600);
 }
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    text-align: center;
-}
-
-.stat-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-size: 1.2rem;
-    color: var(--c-text-color-primary);
-}
-
-.stat-icon {
-    font-size: 1.5rem;
-}
-
-.stat-value {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: var(--c-primary-600);
-}
-
-.good .stat-icon {
-    color: var(--c-success-500);
-}
-
-.warning .stat-icon {
-    color: var(--c-warn-500);
-}
-
-.danger .stat-icon {
-    color: var(--c-danger-500);
-}
-
 .devices-table-card {
     margin-bottom: 2rem;
 }
@@ -310,10 +217,6 @@ const viewDetails = (device) => {
     
     .page-header h1 {
         font-size: 2rem;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
     }
 }
 </style> 
