@@ -1,0 +1,315 @@
+{
+  "device": "/dev/sdb",
+  "timestamp": 1755340242,
+  "smart_data": {
+    "device_info": {
+      "json_format_version": [1, 0],
+      "smartctl": {
+        "version": [7, 3],
+        "svn_revision": "5338",
+        "platform_info": "x86_64-linux-6.1.0-37-amd64",
+        "build_info": "(local build)",
+        "argv": ["smartctl", "-i", "-j", "/dev/sdb"],
+        "exit_status": 0
+      },
+      "local_time": {
+        "time_t": 1755340242,
+        "asctime": "Sat Aug 16 12:30:42 2025 CEST"
+      },
+      "device": {
+        "name": "/dev/sdb",
+        "info_name": "/dev/sdb",
+        "type": "sat",
+        "protocol": "SATA"
+      },
+      "model_name": "SEAGATE ST373453LC",
+      "serial_number": "SEAGATE123456",
+      "firmware_version": "DX10",
+      "user_capacity": {
+        "blocks": 143374650,
+        "bytes": 73407820800
+      },
+      "logical_block_size": 512,
+      "rotation_rate": 15015,
+      "smart_support": {
+        "available": true,
+        "enabled": true
+      }
+    },
+    "smart_attributes": {
+      "json_format_version": [1, 0],
+      "smartctl": {
+        "version": [7, 3],
+        "svn_revision": "5338",
+        "platform_info": "x86_64-linux-6.1.0-37-amd64",
+        "build_info": "(local build)",
+        "argv": ["smartctl", "-A", "-j", "/dev/sdb"],
+        "exit_status": 0
+      },
+      "table": [
+        {
+          "id": 1,
+          "name": "Raw_Read_Error_Rate",
+          "value": 100,
+          "worst": 100,
+          "thresh": 16,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": true,
+            "event_count": false,
+            "auto_keep": false,
+            "string": "PO-R-- "
+          }
+        },
+        {
+          "id": 2,
+          "name": "Throughput_Performance",
+          "value": 136,
+          "worst": 136,
+          "thresh": 54,
+          "raw": {"value": 108, "string": "108"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": false,
+            "performance": true,
+            "error_rate": false,
+            "event_count": false,
+            "auto_keep": false,
+            "string": "POS--- "
+          }
+        },
+        {
+          "id": 3,
+          "name": "Spin_Up_Time",
+          "value": 134,
+          "worst": 134,
+          "thresh": 24,
+          "raw": {"value": 222, "string": "222 (Average 222)"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": true,
+            "performance": true,
+            "error_rate": false,
+            "event_count": false,
+            "auto_keep": false,
+            "string": "POS--- "
+          }
+        },
+        {
+          "id": 4,
+          "name": "Start_Stop_Count",
+          "value": 100,
+          "worst": 100,
+          "thresh": 0,
+          "raw": {"value": 12, "string": "12"},
+          "flags": {
+            "prefailure": false,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "-O--CK "
+          }
+        },
+        {
+          "id": 5,
+          "name": "Reallocated_Sector_Ct",
+          "value": 100,
+          "worst": 100,
+          "thresh": 36,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "PO--CK "
+          }
+        },
+        {
+          "id": 7,
+          "name": "Seek_Error_Rate",
+          "value": 100,
+          "worst": 100,
+          "thresh": 30,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": true,
+            "event_count": false,
+            "auto_keep": false,
+            "string": "PO-R-- "
+          }
+        },
+        {
+          "id": 9,
+          "name": "Power_On_Hours",
+          "value": 100,
+          "worst": 100,
+          "thresh": 0,
+          "raw": {"value": 102880, "string": "102880"},
+          "flags": {
+            "prefailure": false,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "-O--CK "
+          }
+        },
+        {
+          "id": 10,
+          "name": "Spin_Retry_Count",
+          "value": 100,
+          "worst": 100,
+          "thresh": 97,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "PO--CK "
+          }
+        },
+        {
+          "id": 12,
+          "name": "Power_Cycle_Count",
+          "value": 100,
+          "worst": 100,
+          "thresh": 20,
+          "raw": {"value": 12, "string": "12"},
+          "flags": {
+            "prefailure": false,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "-O--CK "
+          }
+        },
+        {
+          "id": 194,
+          "name": "Temperature_Celsius",
+          "value": 100,
+          "worst": 100,
+          "thresh": 0,
+          "raw": {"value": 33, "string": "33"},
+          "flags": {
+            "prefailure": false,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": false,
+            "auto_keep": false,
+            "string": "-O---- "
+          }
+        },
+        {
+          "id": 195,
+          "name": "Hardware_ECC_Recovered",
+          "value": 100,
+          "worst": 100,
+          "thresh": 0,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": false,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "-O--CK "
+          }
+        },
+        {
+          "id": 197,
+          "name": "Current_Pending_Sector",
+          "value": 100,
+          "worst": 100,
+          "thresh": 0,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "PO--CK "
+          }
+        },
+        {
+          "id": 198,
+          "name": "Offline_Uncorrectable",
+          "value": 100,
+          "worst": 100,
+          "thresh": 0,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "PO--CK "
+          }
+        },
+        {
+          "id": 199,
+          "name": "UDMA_CRC_Error_Count",
+          "value": 100,
+          "worst": 100,
+          "thresh": 0,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": false,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": false,
+            "event_count": true,
+            "auto_keep": true,
+            "string": "-O--CK "
+          }
+        },
+        {
+          "id": 200,
+          "name": "Multi_Zone_Error_Rate",
+          "value": 100,
+          "worst": 100,
+          "thresh": 0,
+          "raw": {"value": 0, "string": "0"},
+          "flags": {
+            "prefailure": true,
+            "updated_online": true,
+            "performance": false,
+            "error_rate": true,
+            "event_count": false,
+            "auto_keep": false,
+            "string": "PO-R-- "
+          }
+        }
+      ]
+    },
+    "smart_health": {
+      "smart_status": {
+        "passed": true
+      }
+    },
+    "smart_errors": {},
+    "smart_selftest": {}
+  }
+} 
