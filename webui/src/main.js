@@ -1,4 +1,5 @@
 import { createApp } from 'vue'
+import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import App from './App.vue'
 import CustomTheme from '@/theme.js'
 
@@ -44,5 +45,26 @@ app.use(router)
 // focus trap
 import FocusTrap from 'primevue/focustrap'
 app.directive('focustrap', FocusTrap)
+
+// vue query
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            // Global default settings for queries
+            refetchOnWindowFocus: false, // Disable refetching when window regains focus
+            retry: 3, // Number of retries if query fails
+            staleTime: 1000 * 60 * 5, // Data considered fresh for 5 minutes
+            cacheTime: 1000 * 60 * 30 // Cache data for 30 minutes
+        },
+        mutations: {
+            // Global default settings for mutations
+            retry: false
+        }
+    }
+})
+
+app.use(VueQueryPlugin, {
+    queryClient
+})
 
 app.mount('#app')

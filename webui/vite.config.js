@@ -1,7 +1,8 @@
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import fs from 'fs'
+import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -36,7 +37,28 @@ export default defineConfig({
           '*': ''
         }
       }
+    },
+    // Serve sampledata folder during development only
+    fs: {
+      allow: ['..']
     }
+  },
+  // Custom middleware to serve sampledata during development
+  configureServer(server) {
+    server.middlewares.use('/sampledata', (req, res, next) => {
+      if (req.url) {
+        const filePath = path.join(__dirname, 'sampledata', req.url)
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf-8')
+          res.setHeader('Content-Type', 'application/json')
+          res.end(content)
+        } else {
+          next()
+        }
+      } else {
+        next()
+      }
+    })
   }
 })
 

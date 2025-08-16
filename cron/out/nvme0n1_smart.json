@@ -1,0 +1,251 @@
+{
+  "device": "/dev/nvme0n1",
+  "timestamp": 1755340242,
+  "smart_data": {
+    "device_info": {
+      "json_format_version": [
+        1,
+        0
+      ],
+      "smartctl": {
+        "version": [
+          7,
+          3
+        ],
+        "svn_revision": "5338",
+        "platform_info": "x86_64-linux-6.1.0-37-amd64",
+        "build_info": "(local build)",
+        "argv": [
+          "smartctl",
+          "-i",
+          "-j",
+          "/dev/nvme0n1"
+        ],
+        "exit_status": 0
+      },
+      "local_time": {
+        "time_t": 1755340242,
+        "asctime": "Sat Aug 16 12:30:42 2025 CEST"
+      },
+      "device": {
+        "name": "/dev/nvme0n1",
+        "info_name": "/dev/nvme0n1",
+        "type": "nvme",
+        "protocol": "NVMe"
+      },
+      "model_name": "Samsung SSD 990 PRO 4TB",
+      "serial_number": "S7DPNU0X612056F",
+      "firmware_version": "4B2QJXD7",
+      "nvme_pci_vendor": {
+        "id": 5197,
+        "subsystem_id": 5197
+      },
+      "nvme_ieee_oui_identifier": 9528,
+      "nvme_total_capacity": 4000787030016,
+      "nvme_unallocated_capacity": 0,
+      "nvme_controller_id": 1,
+      "nvme_version": {
+        "string": "2.0",
+        "value": 131072
+      },
+      "nvme_number_of_namespaces": 1,
+      "nvme_namespaces": [
+        {
+          "id": 1,
+          "size": {
+            "blocks": 7814037168,
+            "bytes": 4000787030016
+          },
+          "capacity": {
+            "blocks": 7814037168,
+            "bytes": 4000787030016
+          },
+          "utilization": {
+            "blocks": 4526005648,
+            "bytes": 2317314891776
+          },
+          "formatted_lba_size": 512,
+          "eui64": {
+            "oui": 9528,
+            "ext_id": 301748831978
+          }
+        }
+      ],
+      "user_capacity": {
+        "blocks": 7814037168,
+        "bytes": 4000787030016
+      },
+      "logical_block_size": 512,
+      "smart_support": {
+        "available": true,
+        "enabled": true
+      }
+    },
+    "smart_attributes": {
+      "json_format_version": [
+        1,
+        0
+      ],
+      "smartctl": {
+        "version": [
+          7,
+          3
+        ],
+        "svn_revision": "5338",
+        "platform_info": "x86_64-linux-6.1.0-37-amd64",
+        "build_info": "(local build)",
+        "argv": [
+          "smartctl",
+          "-A",
+          "-j",
+          "/dev/nvme0n1"
+        ],
+        "exit_status": 0
+      },
+      "local_time": {
+        "time_t": 1755340242,
+        "asctime": "Sat Aug 16 12:30:42 2025 CEST"
+      },
+      "device": {
+        "name": "/dev/nvme0n1",
+        "info_name": "/dev/nvme0n1",
+        "type": "nvme",
+        "protocol": "NVMe"
+      },
+      "nvme_smart_health_information_log": {
+        "critical_warning": 0,
+        "temperature": 47,
+        "available_spare": 100,
+        "available_spare_threshold": 10,
+        "percentage_used": 1,
+        "data_units_read": 19955909,
+        "data_units_written": 40728943,
+        "host_reads": 71139112,
+        "host_writes": 165751434,
+        "controller_busy_time": 1240,
+        "power_cycles": 212,
+        "power_on_hours": 1855,
+        "unsafe_shutdowns": 19,
+        "media_errors": 0,
+        "num_err_log_entries": 0,
+        "warning_temp_time": 0,
+        "critical_comp_time": 0,
+        "temperature_sensors": [
+          47,
+          50
+        ]
+      },
+      "temperature": {
+        "current": 47
+      },
+      "power_cycle_count": 212,
+      "power_on_time": {
+        "hours": 1855
+      }
+    },
+    "smart_health": {
+      "json_format_version": [
+        1,
+        0
+      ],
+      "smartctl": {
+        "version": [
+          7,
+          3
+        ],
+        "svn_revision": "5338",
+        "platform_info": "x86_64-linux-6.1.0-37-amd64",
+        "build_info": "(local build)",
+        "argv": [
+          "smartctl",
+          "-H",
+          "-j",
+          "/dev/nvme0n1"
+        ],
+        "exit_status": 0
+      },
+      "local_time": {
+        "time_t": 1755340242,
+        "asctime": "Sat Aug 16 12:30:42 2025 CEST"
+      },
+      "device": {
+        "name": "/dev/nvme0n1",
+        "info_name": "/dev/nvme0n1",
+        "type": "nvme",
+        "protocol": "NVMe"
+      },
+      "smart_status": {
+        "passed": true,
+        "nvme": {
+          "value": 0
+        }
+      }
+    },
+    "smart_errors": {
+      "json_format_version": [
+        1,
+        0
+      ],
+      "smartctl": {
+        "version": [
+          7,
+          3
+        ],
+        "svn_revision": "5338",
+        "platform_info": "x86_64-linux-6.1.0-37-amd64",
+        "build_info": "(local build)",
+        "argv": [
+          "smartctl",
+          "-l",
+          "error",
+          "-j",
+          "/dev/nvme0n1"
+        ],
+        "exit_status": 0
+      },
+      "local_time": {
+        "time_t": 1755340242,
+        "asctime": "Sat Aug 16 12:30:42 2025 CEST"
+      },
+      "device": {
+        "name": "/dev/nvme0n1",
+        "info_name": "/dev/nvme0n1",
+        "type": "nvme",
+        "protocol": "NVMe"
+      }
+    },
+    "smart_selftest": {
+      "json_format_version": [
+        1,
+        0
+      ],
+      "smartctl": {
+        "version": [
+          7,
+          3
+        ],
+        "svn_revision": "5338",
+        "platform_info": "x86_64-linux-6.1.0-37-amd64",
+        "build_info": "(local build)",
+        "argv": [
+          "smartctl",
+          "-l",
+          "selftest",
+          "-j",
+          "/dev/nvme0n1"
+        ],
+        "exit_status": 0
+      },
+      "local_time": {
+        "time_t": 1755340242,
+        "asctime": "Sat Aug 16 12:30:42 2025 CEST"
+      },
+      "device": {
+        "name": "/dev/nvme0n1",
+        "info_name": "/dev/nvme0n1",
+        "type": "nvme",
+        "protocol": "NVMe"
+      }
+    }
+  }
+}

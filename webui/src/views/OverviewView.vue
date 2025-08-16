@@ -5,44 +5,23 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import ProgressBar from 'primevue/progressbar'
-import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useSmartOverview } from '@/composables/useSmartMonitor'
 
 const router = useRouter()
 
-// Sample data - in a real app, this would come from your SMART monitoring API
-const devices = ref([
-    {
-        id: 1,
-        name: '/dev/sda',
-        model: 'Samsung SSD 860 EVO',
-        size: '500GB',
-        health: 'Good',
-        temperature: 35,
-        powerOnHours: 8760,
-        lastCheck: '2024-01-15 10:30:00'
-    },
-    {
-        id: 2,
-        name: '/dev/sdb',
-        model: 'Western Digital WD Blue',
-        size: '1TB',
-        health: 'Warning',
-        temperature: 42,
-        powerOnHours: 17520,
-        lastCheck: '2024-01-15 10:30:00'
-    },
-    {
-        id: 3,
-        name: '/dev/nvme0n1',
-        model: 'Samsung NVMe SSD 970 EVO',
-        size: '250GB',
-        health: 'Good',
-        temperature: 38,
-        powerOnHours: 4380,
-        lastCheck: '2024-01-15 10:30:00'
-    }
-])
+// Use the SMART monitoring composable
+const { 
+    devices, 
+    isLoading, 
+    isError, 
+    error, 
+    refreshAll,
+    totalDevices,
+    healthyDevices,
+    warningDevices,
+    lastCheck
+} = useSmartOverview()
 
 const healthSeverity = (health) => {
     switch (health) {
@@ -56,11 +35,6 @@ const healthSeverity = (health) => {
 const viewDetails = (device) => {
     router.push(`/detail/${device.id}`)
 }
-
-onMounted(() => {
-    // In a real app, fetch initial data here
-    console.log('Overview view mounted')
-})
 </script>
 
 <template>
@@ -69,6 +43,56 @@ onMounted(() => {
             <h1>SMART Monitor</h1>
         </div>
         
+        <div class="stats-grid">
+            <Card class="stat-card">
+                <template #title>
+                    <div class="stat-header">
+                        <i class="pi pi-hdd stat-icon"></i>
+                        Total Devices
+                    </div>
+                </template>
+                <template #content>
+                    <div class="stat-value">{{ totalDevices }}</div>
+                </template>
+            </Card>
+
+            <Card class="stat-card">
+                <template #title>
+                    <div class="stat-header">
+                        <i class="pi pi-check-circle stat-icon good"></i>
+                        Healthy Devices
+                    </div>
+                </template>
+                <template #content>
+                    <div class="stat-value">{{ healthyDevices }}</div>
+                </template>
+            </Card>
+
+            <Card class="stat-card">
+                <template #title>
+                    <div class="stat-header">
+                        <i class="pi pi-exclamation-triangle stat-icon warning"></i>
+                        Warning Devices
+                    </div>
+                </template>
+                <template #content>
+                    <div class="stat-value">{{ warningDevices }}</div>
+                </template>
+            </Card>
+
+            <Card class="stat-card">
+                <template #title>
+                    <div class="stat-header">
+                        <i class="pi pi-clock stat-icon"></i>
+                        Last Check
+                    </div>
+                </template>
+                <template #content>
+                    <div class="stat-value">{{ lastCheck }}</div>
+                </template>
+            </Card>
+        </div>
+
         <Card class="devices-table-card">
             <template #title>
                 <div class="table-header">
@@ -76,16 +100,28 @@ onMounted(() => {
                         <i class="pi pi-list stat-icon"></i>
                         Storage Devices
                         <span class="table-stats">
-                            ({{ devices.length }} total, {{ devices.filter(d => d.health === 'Warning').length }} warnings)
+                            ({{ totalDevices }} total, {{ warningDevices }} warnings)
                         </span>
                     </div>
                     <div class="table-header-right">
-                        Last check: {{ devices[0]?.lastCheck || 'N/A' }}
+                        Last check: {{ lastCheck }}
                     </div>
                 </div>
             </template>
             <template #content>
+                <div v-if="isLoading" class="loading-state">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+                    <p>Loading SMART data...</p>
+                </div>
+                
+                <div v-else-if="isError" class="error-state">
+                    <i class="pi pi-exclamation-triangle" style="font-size: 2rem; color: var(--c-danger-500);"></i>
+                    <p>Error loading SMART data: {{ error?.message || 'Unknown error' }}</p>
+                    <Button @click="refreshAll" label="Retry" icon="pi pi-refresh" />
+                </div>
+                
                 <DataTable 
+                    v-else
                     :value="devices" 
                     :rows="50"
                     responsiveLayout="scroll"
@@ -164,6 +200,48 @@ onMounted(() => {
     color: var(--c-primary-600);
 }
 
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    text-align: center;
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 1.2rem;
+    color: var(--c-text-color-primary);
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--c-primary-600);
+}
+
+.good .stat-icon {
+    color: var(--c-success-500);
+}
+
+.warning .stat-icon {
+    color: var(--c-warn-500);
+}
+
+.danger .stat-icon {
+    color: var(--c-danger-500);
+}
+
 .devices-table-card {
     margin-bottom: 2rem;
 }
@@ -210,6 +288,20 @@ onMounted(() => {
     min-width: 80px;
 }
 
+.loading-state, .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--c-text-color-secondary);
+    font-size: 1.1rem;
+}
+
+.loading-state i, .error-state i {
+    margin-bottom: 1rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .overview-container {
@@ -218,6 +310,10 @@ onMounted(() => {
     
     .page-header h1 {
         font-size: 2rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
     }
 }
 </style> 
