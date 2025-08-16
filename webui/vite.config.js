@@ -15,6 +15,15 @@ export default defineConfig({
     }
   },
   base: "/",
+  build: {
+    assetsDir: 'assets',
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url))
+      }
+    }
+  },
+  publicDir: 'public',
   server: {
     proxy: {
       '/auth': { // This is the path you want to proxy

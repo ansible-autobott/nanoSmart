@@ -58,7 +58,7 @@ const viewDetails = (device) => {
 <template>
     <div class="overview-container">
         <div class="page-header">
-            <h1>SMART Monitor</h1>
+            <h1 class="font-semibold" style="font-size: 2rem">nano SMART</h1>
         </div>
         
         <Card class="devices-table-card">
