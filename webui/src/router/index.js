@@ -5,7 +5,13 @@ const router = createRouter({
     routes: [
         {
             path: '/',
-            redirect: '/404'
+            name: 'overview',
+            component: () => import('@/views/OverviewView.vue')
+        },
+        {
+            path: '/detail/:id',
+            name: 'detail',
+            component: () => import('@/views/DetailView.vue')
         },
         {
             path: '/404',
