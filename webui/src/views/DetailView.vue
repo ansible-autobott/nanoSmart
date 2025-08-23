@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, ref, watchEffect } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import Card from 'primevue/card'
@@ -17,23 +17,19 @@ const route = useRoute()
 const router = useRouter()
 const deviceId = computed(() => route.params.id)
 
-console.log('🔍 DEBUG: DetailView - deviceId computed:', deviceId.value)
 
 // Use the SMART monitoring composable for helper functions
-const { refreshDevice } = useSmartMonitor()
 
 // Use useQuery directly - this is the correct way to handle reactive parameters
 const deviceQuery = useQuery({
     queryKey: ['smart', 'device', deviceId],
     queryFn: () => {
         if (!deviceId.value) return null
-        console.log('🔍 DEBUG: DetailView - fetching device data for:', deviceId.value)
         return fetchDeviceData(deviceId.value)
     },
     enabled: computed(() => !!deviceId.value),
     select: (data) => {
         if (!data) return null
-        console.log('🔍 DEBUG: DetailView - transforming device data:', data)
         return transformDeviceData(data)
     }
 })
@@ -47,24 +43,9 @@ const error = computed(() => deviceQuery.error.value || null)
 // Function to refresh device data
 const refresh = () => {
     if (deviceId.value) {
-        console.log('🔍 DEBUG: DetailView - refreshing device:', deviceId.value)
         deviceQuery.refetch()
     }
 }
-
-// Debug: Log the values to see what's happening
-console.log('🔍 DEBUG: DetailView - device:', device)
-console.log('🔍 DEBUG: DetailView - isLoading:', isLoading)
-console.log('🔍 DEBUG: DetailView - isError:', isError)
-console.log('🔍 DEBUG: DetailView - error:', error)
-
-// Watch for changes in these values
-watchEffect(() => {
-    console.log('🔍 DEBUG: DetailView - device changed:', device.value)
-    console.log('🔍 DEBUG: DetailView - isLoading changed:', isLoading.value)
-    console.log('🔍 DEBUG: DetailView - isError changed:', isError.value)
-    console.log('🔍 DEBUG: DetailView - error changed:', error.value)
-})
 
 const attributeSeverity = (status) => {
     switch (status) {
@@ -77,15 +58,37 @@ const attributeSeverity = (status) => {
 
 const getAttributeDescription = (attributeName) => {
     const descriptions = {
+        // NVMe attributes
         'Critical Warning': 'Overall health status of the device',
-        'Temperature': 'Current operating temperature in Celsius',
         'Available Spare': 'Percentage of spare blocks available',
         'Percentage Used': 'Estimated percentage of device life used',
-        'Power-On Hours': 'Total time the device has been powered on',
-        'Power Cycles': 'Number of power on/off cycles',
         'Media Errors': 'Number of media errors detected during read/write operations',
         'Error Log Entries': 'Total count of error log entries recorded',
         'Unsafe Shutdowns': 'Number of times the device was shut down unexpectedly',
+        
+        // Common ATA SMART attributes
+        'Raw_Read_Error_Rate': 'Rate of uncorrected read errors',
+        'Throughput_Performance': 'Overall device performance indicator',
+        'Spin_Up_Time': 'Time required to spin up the drive from stop',
+        'Start_Stop_Count': 'Number of start/stop cycles',
+        'Reallocated_Sector_Ct': 'Number of reallocated sectors',
+        'Seek_Error_Rate': 'Rate of seek errors during operation',
+        'Seek_Time_Performance': 'Average seek time performance',
+        'Power_On_Hours': 'Total time the device has been powered on',
+        'Spin_Retry_Count': 'Number of retries to spin up the drive',
+        'Helium_Level': 'Helium level in helium-filled drives',
+        'Power-Off_Retract_Count': 'Number of power-off retracts',
+        'Load_Cycle_Count': 'Number of load/unload cycles',
+        'Temperature_Celsius': 'Current operating temperature',
+        'Reallocated_Event_Count': 'Number of reallocation events',
+        'Current_Pending_Sector': 'Number of sectors waiting to be reallocated',
+        'Offline_Uncorrectable': 'Number of uncorrectable sectors found offline',
+        'UDMA_CRC_Error_Count': 'UltraDMA CRC error count',
+        
+        // Alternative naming variations
+        'Temperature': 'Current operating temperature in Celsius',
+        'Power-On Hours': 'Total time the device has been powered on',
+        'Power Cycles': 'Number of power on/off cycles',
         'SMART Status': 'Overall SMART health status of the device',
         'Reallocated Sectors Count': 'Number of reallocated sectors',
         'Current Pending Sectors': 'Number of sectors waiting to be reallocated',
@@ -115,7 +118,45 @@ const getAttributeDescription = (attributeName) => {
         'Power On Hours Count': 'Total power-on time'
     }
     
-    return descriptions[attributeName] || 'SMART monitoring attribute'
+    // First try exact match
+    if (descriptions[attributeName]) {
+        return descriptions[attributeName]
+    }
+    
+    // If no exact match, try fuzzy matching for common patterns
+    const attrLower = attributeName.toLowerCase()
+    
+    if (attrLower.includes('error') && attrLower.includes('rate')) {
+        return 'Rate of errors during operation'
+    } else if (attrLower.includes('error') && attrLower.includes('count')) {
+        return 'Count of errors detected'
+    } else if (attrLower.includes('temperature')) {
+        return 'Current operating temperature'
+    } else if (attrLower.includes('power') && attrLower.includes('on')) {
+        return 'Total time the device has been powered on'
+    } else if (attrLower.includes('power') && attrLower.includes('cycle')) {
+        return 'Number of power on/off cycles'
+    } else if (attrLower.includes('reallocated') || attrLower.includes('reallocation')) {
+        return 'Number of reallocated sectors'
+    } else if (attrLower.includes('pending')) {
+        return 'Number of sectors waiting to be processed'
+    } else if (attrLower.includes('uncorrectable')) {
+        return 'Number of sectors that cannot be corrected'
+    } else if (attrLower.includes('seek')) {
+        return 'Seek time and performance metrics'
+    } else if (attrLower.includes('spin')) {
+        return 'Drive spin-up performance metrics'
+    } else if (attrLower.includes('load') && attrLower.includes('cycle')) {
+        return 'Number of load/unload cycles'
+    } else if (attrLower.includes('crc')) {
+        return 'CRC error detection and counting'
+    } else if (attrLower.includes('throughput')) {
+        return 'Overall device performance indicator'
+    } else if (attrLower.includes('helium')) {
+        return 'Helium level in helium-filled drives'
+    }
+    
+    return `SMART monitoring attribute: ${attributeName}`
 }
 
 const getSelftestDescription = (testType) => {
@@ -154,6 +195,37 @@ const getSelftestDescription = (testType) => {
     }
     
     return descriptions[testType]
+}
+
+const getSelftestStatusSeverity = (status) => {
+    if (!status) return 'info'
+    
+    const statusLower = status.toLowerCase()
+    
+    // Check for successful completion first
+    if (statusLower.includes('completed without error') || 
+        statusLower.includes('passed') || 
+        statusLower.includes('success') ||
+        statusLower.includes('ok')) {
+        return 'success'
+    }
+    
+    // Check for failures or errors
+    if (statusLower.includes('failed') || 
+        statusLower.includes('error') || 
+        statusLower.includes('aborted') ||
+        statusLower.includes('interrupted')) {
+        return 'danger'
+    }
+    
+    // Check for warnings
+    if (statusLower.includes('warning') || 
+        statusLower.includes('caution')) {
+        return 'warn'
+    }
+    
+    // Default to info for unknown statuses
+    return 'info'
 }
 
 const goBack = () => {
@@ -308,7 +380,7 @@ const goBack = () => {
                                     <template #body="{ data }">
                                         <Tag 
                                             :value="data.status" 
-                                            :severity="data.status.includes('error') ? 'danger' : 'success'"
+                                            :severity="getSelftestStatusSeverity(data.status)"
                                         />
                                     </template>
                                 </Column>

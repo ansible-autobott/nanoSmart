@@ -4,9 +4,6 @@ import { computed, watchEffect, ref, unref } from 'vue'
 
 // Check if we're in development mode
 const isDevelopment = import.meta.env.DEV
-console.log('🔍 DEBUG: Environment check - isDevelopment =', isDevelopment)
-console.log('🔍 DEBUG: import.meta.env =', import.meta.env)
-console.log('🔍 DEBUG: VITE_SMART_API_URL =', import.meta.env.VITE_SMART_API_URL)
 
 // API Endpoints - these would be configured based on your backend setup
 const API_BASE_URL = import.meta.env.VITE_SMART_API_URL || '/api/smart'
@@ -16,11 +13,6 @@ const INDEX_ENDPOINT = `${API_BASE_URL}/index.json`
 const SAMPLE_BASE_URL = '/sampledata'
 const SAMPLE_INDEX_ENDPOINT = `${SAMPLE_BASE_URL}/index.json`
 
-console.log('🔍 DEBUG: API endpoints configured:')
-console.log('🔍 DEBUG: API_BASE_URL =', API_BASE_URL)
-console.log('🔍 DEBUG: INDEX_ENDPOINT =', INDEX_ENDPOINT)
-console.log('🔍 DEBUG: SAMPLE_BASE_URL =', SAMPLE_BASE_URL)
-console.log('🔍 DEBUG: SAMPLE_INDEX_ENDPOINT =', SAMPLE_INDEX_ENDPOINT)
 
 // Helper: standard response handlers
 const extractData = (res) => res.data
@@ -31,20 +23,16 @@ const extractItems = (res) => res.data.items || []
  * @returns {Promise<Object>} Index data with device list and metadata
  */
 const fetchIndex = async () => {
-    console.log('🔍 DEBUG: fetchIndex called')
     if (isDevelopment) {
         console.log('📊 Development: Fetching sample index data from sampledata folder')
         try {
             const { data } = await axios.get(SAMPLE_INDEX_ENDPOINT)
-            console.log('🔍 DEBUG: Sample index data received:', data)
             return data
         } catch (error) {
-            console.error('🔍 DEBUG: Error fetching sample index:', error)
             throw error
         }
     }
     
-    console.log('📊 Production: Fetching index data from API')
     const { data } = await axios.get(INDEX_ENDPOINT)
     return data
 }
@@ -55,22 +43,16 @@ const fetchIndex = async () => {
  * @returns {Promise<Object>} Device SMART data
  */
 const fetchDeviceData = async (deviceName) => {
-    console.log('🔍 DEBUG: fetchDeviceData called for:', deviceName)
     if (isDevelopment) {
-        console.log(`📊 Development: Fetching sample device data for ${deviceName} from sampledata folder`)
         try {
             const deviceEndpoint = `${SAMPLE_BASE_URL}/${deviceName}_smart.json`
-            console.log('🔍 DEBUG: Sample device endpoint:', deviceEndpoint)
             const { data } = await axios.get(deviceEndpoint)
-            console.log('🔍 DEBUG: Sample device data received for', deviceName, ':', data)
             return data
         } catch (error) {
-            console.error('🔍 DEBUG: Error fetching sample device data for', deviceName, ':', error)
             throw error
         }
     }
     
-    console.log(`📊 Production: Fetching device data for ${deviceName} from API`)
     const deviceEndpoint = `${API_BASE_URL}/${deviceName}_smart.json`
     const { data } = await axios.get(deviceEndpoint)
     return data
@@ -82,13 +64,10 @@ const fetchDeviceData = async (deviceName) => {
  * @returns {Promise<Array>} Array of device SMART data
  */
 const fetchMultipleDevices = async (deviceNames) => {
-    console.log('🔍 DEBUG: fetchMultipleDevices called with deviceNames =', deviceNames)
-    
+
     if (isDevelopment) {
-        console.log(`📊 Development: Fetching multiple sample device data for ${deviceNames.join(', ')} from sampledata folder`)
         const promises = deviceNames.map(deviceName => {
             const deviceEndpoint = `${SAMPLE_BASE_URL}/${deviceName}_smart.json`
-            console.log('🔍 DEBUG: Fetching from sample endpoint:', deviceEndpoint)
             return axios.get(deviceEndpoint).then(res => res.data)
         })
         
@@ -97,15 +76,12 @@ const fetchMultipleDevices = async (deviceNames) => {
             const successfulResults = results
                 .filter(result => result.status === 'fulfilled')
                 .map(result => result.value)
-            console.log('🔍 DEBUG: fetchMultipleDevices successful results count:', successfulResults.length)
             return successfulResults
         } catch (error) {
-            console.error('🔍 DEBUG: Error in fetchMultipleDevices:', error)
             throw error
         }
     }
     
-    console.log(`📊 Production: Fetching multiple device data for ${deviceNames.join(', ')} from API`)
     const promises = deviceNames.map(deviceName => fetchDeviceData(deviceName))
     const results = await Promise.allSettled(promises)
     
@@ -121,16 +97,13 @@ const fetchMultipleDevices = async (deviceNames) => {
  * @returns {Object} Transformed device data
  */
 const transformDeviceData = (deviceData) => {
-    console.log('🔍 DEBUG: transformDeviceData called with:', deviceData)
-    
+
     if (!deviceData || !deviceData.smart_data) {
-        console.log('🔍 DEBUG: No deviceData or smart_data, returning null')
         return null
     }
 
     const { smart_data } = deviceData
-    console.log('🔍 DEBUG: smart_data structure:', smart_data)
-    
+
     const deviceInfo = smart_data.device_info || {}
     const smartAttrs = smart_data.smart_attributes || {}
     const smartHealth = smart_data.smart_health || {}
@@ -146,19 +119,14 @@ const transformDeviceData = (deviceData) => {
     let deviceType = 'Unknown'
     if (deviceInfo.device?.type) {
         deviceType = deviceInfo.device.type.toUpperCase()
-        console.log('🔍 DEBUG: Device type from device.type:', deviceType)
     } else if (deviceInfo.device?.protocol) {
         deviceType = deviceInfo.device.protocol
-        console.log('🔍 DEBUG: Device type from device.protocol:', deviceType)
     } else if (smartAttrs.nvme_smart_health_information_log) {
         deviceType = 'NVMe'
-        console.log('🔍 DEBUG: Device type inferred as NVMe from smart attributes')
     } else {
         deviceType = 'SATA/SCSI'
-        console.log('🔍 DEBUG: Device type inferred as SATA/SCSI')
     }
     
-    console.log('🔍 DEBUG: Final deviceType value:', deviceType)
 
     // Handle different capacity fields
     let size = 'Unknown Size'
@@ -191,6 +159,20 @@ const transformDeviceData = (deviceData) => {
         powerOnHours = parseInt(smartAttrs.power_on_time.hours) || 0
     } else if (smartAttrs.nvme_smart_health_information_log?.power_on_hours) {
         powerOnHours = parseInt(smartAttrs.nvme_smart_health_information_log.power_on_hours) || 0
+    }
+
+    // Extract temperature from various possible locations
+    let temperature = null
+    if (smartAttrs.nvme_smart_health_information_log?.temperature) {
+        temperature = smartAttrs.nvme_smart_health_information_log.temperature
+    } else if (smartAttrs.temperature?.current) {
+        temperature = smartAttrs.temperature.current
+    } else if (smartAttrs.ata_smart_attributes?.table) {
+        // Look for temperature attribute (ID 194) in ATA SMART table
+        const tempAttr = smartAttrs.ata_smart_attributes.table.find(attr => attr.id === 194)
+        if (tempAttr?.raw?.value) {
+            temperature = tempAttr.raw.value
+        }
     }
 
     // Format timestamp
@@ -287,18 +269,32 @@ const transformDeviceData = (deviceData) => {
             }
         ]
     } else {
-        // Traditional SMART attributes format
-        smartAttributes = Object.entries(smartAttrs)
-            .filter(([key, attr]) => attr && typeof attr === 'object' && attr.id)
-            .map(([key, attr]) => ({
-                id: attr.id || key,
-                name: attr.name || key,
-                value: attr.value || 0,
-                worst: attr.worst || 0,
-                threshold: attr.threshold || 0,
-                raw: attr.raw || '0',
-                status: (attr.value || 0) > (attr.threshold || 0) ? 'Good' : 'Warning'
+        // Traditional SMART attributes format - check for ATA SMART attributes table
+        if (smartAttrs.ata_smart_attributes?.table) {
+            // ATA SMART attributes are in a table format
+            smartAttributes = smartAttrs.ata_smart_attributes.table.map(attr => ({
+                id: attr.id,
+                name: attr.name,
+                value: attr.value,
+                worst: attr.worst,
+                threshold: attr.thresh, // Note: ATA uses 'thresh' not 'threshold'
+                raw: attr.raw?.string || attr.raw?.value?.toString() || '0',
+                status: attr.value > attr.thresh ? 'Good' : 'Warning'
             }))
+        } else {
+            // Fallback to generic SMART attributes format
+            smartAttributes = Object.entries(smartAttrs)
+                .filter(([key, attr]) => attr && typeof attr === 'object' && attr.id)
+                .map(([key, attr]) => ({
+                    id: attr.id || key,
+                    name: attr.name || key,
+                    value: attr.value || 0,
+                    worst: attr.worst || 0,
+                    threshold: attr.threshold || 0,
+                    raw: attr.raw || '0',
+                    status: (attr.value || 0) > (attr.threshold || 0) ? 'Good' : 'Warning'
+                }))
+        }
         
         // Add error-related SMART attributes for traditional drives
         if (smartHealth.smart_status?.passed !== undefined) {
@@ -327,15 +323,26 @@ const transformDeviceData = (deviceData) => {
             }
         ]
     } else {
-        // Traditional self-test log format
-        selftestLog = Object.entries(smartSelftest)
-            .filter(([key, test]) => test && typeof test === 'object')
-            .map(([key, test]) => ({
-                timestamp: test.timestamp || lastCheck,
-                type: test.type || key,
-                status: test.status || 'Unknown',
-                duration: test.duration || 'Unknown'
+        // Traditional self-test log format - check for ATA self-test log
+        if (smartSelftest.ata_smart_self_test_log?.standard?.table) {
+            // ATA self-test log is in a table format
+            selftestLog = smartSelftest.ata_smart_self_test_log.standard.table.map(test => ({
+                timestamp: test.lifetime_hours ? `${test.lifetime_hours} hours` : lastCheck,
+                type: test.type?.string || 'Unknown',
+                status: test.status?.string || 'Unknown',
+                duration: 'N/A'
             }))
+        } else {
+            // Fallback to generic self-test log format
+            selftestLog = Object.entries(smartSelftest)
+                .filter(([key, test]) => test && typeof test === 'object')
+                .map(([key, test]) => ({
+                    timestamp: test.timestamp || lastCheck,
+                    type: test.type || key,
+                    status: test.status || 'Unknown',
+                    duration: test.duration || 'Unknown'
+                }))
+        }
     }
 
     const result = {
@@ -348,14 +355,13 @@ const transformDeviceData = (deviceData) => {
         size,
         health,
         powerOnHours,
+        temperature,
         lastCheck,
         smartAttributes,
         errorLog: [], // No longer separate error log, included in smartAttributes
         selftestLog
     }
-    
-    console.log('🔍 DEBUG: transformDeviceData returning result:', result)
-    console.log('🔍 DEBUG: deviceType in result:', result.deviceType)
+
     
     return result
 }
@@ -387,7 +393,6 @@ export function useSmartMonitor(options = {}) {
 
     // Function to load all data
     const loadAllData = async () => {
-        console.log('🔍 DEBUG: loadAllData called')
         isAllDevicesLoading.value = true
         isAllDevicesError.value = false
         allDevicesError.value = null
@@ -395,10 +400,8 @@ export function useSmartMonitor(options = {}) {
         try {
             // First fetch the index
             const indexData = await fetchIndex()
-            console.log('🔍 DEBUG: Index data fetched:', indexData)
-            
+
             if (!indexData?.json_files || indexData.json_files.length === 0) {
-                console.log('🔍 DEBUG: No json_files found, setting empty array')
                 allDevicesData.value = []
                 return
             }
@@ -407,19 +410,15 @@ export function useSmartMonitor(options = {}) {
             const deviceNames = indexData.json_files.map(filename => 
                 filename.replace('_smart.json', '')
             )
-            console.log('🔍 DEBUG: Device names extracted:', deviceNames)
-            
+
             // Then fetch device data
             const devicesData = await fetchMultipleDevices(deviceNames)
-            console.log('🔍 DEBUG: Devices data fetched:', devicesData)
-            
+
             // Transform the data
             const transformedData = devicesData.map(transformDeviceData).filter(Boolean)
-            console.log('🔍 DEBUG: Data transformed:', transformedData)
-            
+
             allDevicesData.value = transformedData
         } catch (error) {
-            console.error('🔍 DEBUG: Error in loadAllData:', error)
             isAllDevicesError.value = true
             allDevicesError.value = error
         } finally {
@@ -453,28 +452,23 @@ export function useSmartMonitor(options = {}) {
     // Computed properties for all devices data
     const allDevicesDataComputed = computed(() => {
         const data = allDevicesData.value
-        console.log('🔍 DEBUG: allDevicesData computed =', data)
         return data
     })
     const isAllDevicesLoadingComputed = computed(() => {
         const loading = isAllDevicesLoading.value
-        console.log('🔍 DEBUG: isAllDevicesLoading computed =', loading)
         return loading
     })
     const isAllDevicesErrorComputed = computed(() => {
         const error = isAllDevicesError.value
-        console.log('🔍 DEBUG: isAllDevicesError computed =', error)
         return error
     })
     const allDevicesErrorComputed = computed(() => {
         const err = allDevicesError.value
-        console.log('🔍 DEBUG: allDevicesError computed =', err)
         return err
     })
 
     // Refresh all data
     const refreshAll = () => {
-        console.log('🔍 DEBUG: refreshAll called')
         loadAllData()
     }
 
@@ -530,30 +524,22 @@ export function useSmartOverview() {
         refreshAll 
     } = useSmartMonitor()
     
-    console.log('🔍 DEBUG: useSmartOverview called')
-    console.log('🔍 DEBUG: allDevicesData =', allDevicesData)
-    console.log('🔍 DEBUG: isIndexLoading =', isIndexLoading)
-    console.log('🔍 DEBUG: isAllDevicesLoading =', isAllDevicesLoading)
-    
+
     const devices = computed(() => {
         const data = allDevicesData.value
-        console.log('🔍 DEBUG: devices computed =', data)
         return data
     })
     
     const isLoading = computed(() => {
         const loading = isIndexLoading.value || isAllDevicesLoading.value
-        console.log('🔍 DEBUG: isLoading computed =', loading)
         return loading
     })
     const isError = computed(() => {
         const error = isIndexError.value || isAllDevicesError.value
-        console.log('🔍 DEBUG: isError computed =', error)
         return error
     })
     const error = computed(() => {
         const err = indexError.value || allDevicesError.value
-        console.log('🔍 DEBUG: error computed =', err)
         return err
     })
     
@@ -580,10 +566,8 @@ export function useSmartDevice(deviceName) {
     
     // Get the device name value
     const name = unref(deviceName)
-    console.log('🔍 DEBUG: useSmartDevice - deviceName:', name)
-    
+
     if (!name) {
-        console.log('🔍 DEBUG: useSmartDevice - no device name, returning empty state')
         return {
             device: ref(null),
             isLoading: ref(false),
@@ -595,8 +579,7 @@ export function useSmartDevice(deviceName) {
     
     // Call deviceQuery at the top level (this is required for Vue Query)
     const deviceQueryInstance = deviceQuery(name)
-    console.log('🔍 DEBUG: useSmartDevice - deviceQuery result:', deviceQueryInstance)
-    
+
     return {
         device: computed(() => deviceQueryInstance.data || null),
         isLoading: computed(() => deviceQueryInstance.isLoading || false),
